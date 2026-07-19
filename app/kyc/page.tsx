@@ -25,8 +25,14 @@ export default function KYCPage() {
     riskLevel: '',
     reviewReason: ''
   });
+  const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
 
-  const currentUser = authService.getCurrentUser();
+  useEffect(() => {
+    const unsubscribe = authService.subscribe((user) => {
+      setCurrentUser(user);
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     loadCases();

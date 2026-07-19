@@ -25,13 +25,13 @@ export function formatCurrency(amount: number, currency: string = 'USD'): string
 export function getRiskColor(risk: string): string {
   switch (risk) {
     case 'high':
-      return 'text-red-600 bg-red-50 border-red-200';
+      return 'text-red-700 bg-red-50 border-red-200';
     case 'medium':
-      return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      return 'text-yellow-700 bg-yellow-50 border-yellow-200';
     case 'low':
-      return 'text-green-600 bg-green-50 border-green-200';
+      return 'text-green-700 bg-green-50 border-green-200';
     default:
-      return 'text-gray-600 bg-gray-50 border-gray-200';
+      return 'text-gray-700 bg-gray-50 border-gray-200';
   }
 }
 
@@ -40,19 +40,19 @@ export function getStatusColor(status: string): string {
     case 'approved':
     case 'processed':
     case 'enabled':
-      return 'text-green-600 bg-green-50 border-green-200';
+      return 'text-green-700 bg-green-50 border-green-200';
     case 'rejected':
     case 'failed':
     case 'disabled':
-      return 'text-red-600 bg-red-50 border-red-200';
+      return 'text-red-700 bg-red-50 border-red-200';
     case 'pending':
     case 'info_requested':
-      return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      return 'text-yellow-700 bg-yellow-50 border-yellow-200';
     case 'escalated':
-      return 'text-orange-600 bg-orange-50 border-orange-200';
+      return 'text-orange-700 bg-orange-50 border-orange-200';
     case 'rollout':
-      return 'text-blue-600 bg-blue-50 border-blue-200';
+      return 'text-blue-700 bg-blue-50 border-blue-200';
     default:
-      return 'text-gray-600 bg-gray-50 border-gray-200';
+      return 'text-gray-700 bg-gray-50 border-gray-200';
   }
 }

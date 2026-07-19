@@ -15,7 +15,7 @@ export function Navigation() {
   ];
 
   return (
-    <nav className="bg-white border-b">
+    <nav className="bg-white border-b border-gray-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-8">
@@ -30,8 +30,8 @@ export function Navigation() {
                   className={cn(
                     'px-3 py-2 rounded-md text-sm font-medium transition-colors',
                     pathname === item.href
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                   )}
                 >
                   {item.label}

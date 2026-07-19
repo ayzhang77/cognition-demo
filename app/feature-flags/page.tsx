@@ -28,8 +28,14 @@ export default function FeatureFlagsPage() {
     environment: '',
     state: ''
   });
+  const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
 
-  const currentUser = authService.getCurrentUser();
+  useEffect(() => {
+    const unsubscribe = authService.subscribe((user) => {
+      setCurrentUser(user);
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     loadFlags();
