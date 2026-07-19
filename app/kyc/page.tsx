@@ -305,7 +305,10 @@ export default function KYCPage() {
             <Button variant="secondary" onClick={() => setActionModal({ isOpen: false, action: 'approve' })}>
               Cancel
             </Button>
-            <Button onClick={handleAction}>
+            <Button 
+              onClick={handleAction}
+              disabled={selectedCase?.riskLevel === 'high' && actionModal.action === 'approve' && !authService.canApproveKYCHighRisk()}
+            >
               Confirm
             </Button>
           </>
@@ -315,6 +318,11 @@ export default function KYCPage() {
           <p className="text-sm text-gray-600 mb-4">
             Please provide a reason for {actionModal.action.replace(/_/g, ' ')} this case.
           </p>
+          {selectedCase?.riskLevel === 'high' && actionModal.action === 'approve' && !authService.canApproveKYCHighRisk() && (
+            <p className="text-sm text-orange-600 bg-orange-50 p-3 rounded-lg mb-4">
+              ⚠️ High-risk cases can only be approved by Compliance reviewers or Admins
+            </p>
+          )}
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}

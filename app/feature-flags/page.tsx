@@ -275,6 +275,7 @@ export default function FeatureFlagsPage() {
                   environment: selectedFlag.environment,
                   reason: '' 
                 })}
+                disabled={selectedFlag.environment === 'production' && !authService.canModifyProductionFlags()}
               >
                 Enable
               </Button>
@@ -287,6 +288,7 @@ export default function FeatureFlagsPage() {
                   environment: selectedFlag.environment,
                   reason: '' 
                 })}
+                disabled={selectedFlag.environment === 'production' && !authService.canModifyProductionFlags()}
               >
                 Disable
               </Button>
@@ -299,6 +301,7 @@ export default function FeatureFlagsPage() {
                   environment: selectedFlag.environment,
                   reason: '' 
                 })}
+                disabled={selectedFlag.environment === 'production' && !authService.canModifyProductionFlags()}
               >
                 Update User Targeting
               </Button>
@@ -322,13 +325,21 @@ export default function FeatureFlagsPage() {
             <Button variant="secondary" onClick={() => setEditModal({ isOpen: false, action: 'enable', enabledUserIds: [], environment: 'development', reason: '' })}>
               Cancel
             </Button>
-            <Button onClick={handleFlagAction}>
+            <Button 
+              onClick={handleFlagAction}
+              disabled={editModal.environment === 'production' && !authService.canModifyProductionFlags()}
+            >
               Confirm Change
             </Button>
           </>
         }
       >
         <div className="space-y-4">
+          {editModal.environment === 'production' && !authService.canModifyProductionFlags() && (
+            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+              ⚠️ You do not have permission to modify production flags
+            </p>
+          )}
           {editModal.action === 'update_user_targeting' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -400,12 +411,6 @@ export default function FeatureFlagsPage() {
               <p className="text-xs text-orange-600 mt-1">Production changes require a reason</p>
             )}
           </div>
-
-          {editModal.environment === 'production' && !authService.canModifyProductionFlags() && (
-            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-              ⚠️ You do not have permission to modify production flags
-            </p>
-          )}
         </div>
       </Modal>
     </div>
