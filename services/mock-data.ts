@@ -28,7 +28,7 @@ export const MOCK_KYC_CASES: KYCCase[] = [
     auditHistory: [
       {
         id: 'AUDIT-001',
-        action: 'assigned',
+        action: 'assigned' as const,
         userId: '2',
         userName: 'Priya Shah',
         timestamp: new Date('2024-01-15T10:30:00Z'),
@@ -60,7 +60,7 @@ export const MOCK_KYC_CASES: KYCCase[] = [
     auditHistory: [
       {
         id: 'AUDIT-002',
-        action: 'assigned',
+        action: 'assigned' as const,
         userId: '2',
         userName: 'Priya Shah',
         timestamp: new Date('2024-01-14T15:45:00Z'),
@@ -95,7 +95,7 @@ export const MOCK_KYC_CASES: KYCCase[] = [
     auditHistory: [
       {
         id: 'AUDIT-003',
-        action: 'assigned',
+        action: 'assigned' as const,
         userId: '2',
         userName: 'Priya Shah',
         timestamp: new Date('2024-01-13T09:15:00Z'),
@@ -103,7 +103,7 @@ export const MOCK_KYC_CASES: KYCCase[] = [
       },
       {
         id: 'AUDIT-004',
-        action: 'info_requested',
+        action: 'info_requested' as const,
         userId: '2',
         userName: 'Priya Shah',
         timestamp: new Date('2024-01-13T14:30:00Z'),
@@ -135,7 +135,7 @@ export const MOCK_KYC_CASES: KYCCase[] = [
     auditHistory: [
       {
         id: 'AUDIT-005',
-        action: 'assigned',
+        action: 'assigned' as const,
         userId: '2',
         userName: 'Priya Shah',
         timestamp: new Date('2024-01-12T16:20:00Z'),
@@ -170,7 +170,7 @@ export const MOCK_KYC_CASES: KYCCase[] = [
     auditHistory: [
       {
         id: 'AUDIT-006',
-        action: 'assigned',
+        action: 'assigned' as const,
         userId: '2',
         userName: 'Priya Shah',
         timestamp: new Date('2024-01-10T11:00:00Z'),
@@ -178,7 +178,7 @@ export const MOCK_KYC_CASES: KYCCase[] = [
       },
       {
         id: 'AUDIT-007',
-        action: 'approved',
+        action: 'approved' as const,
         userId: '2',
         userName: 'Priya Shah',
         timestamp: new Date('2024-01-10T13:45:00Z'),
@@ -267,7 +267,7 @@ export const MOCK_PAYMENTS: Payment[] = [
         auditHistory: [
           {
             id: 'AUDIT-008',
-            action: 'requested',
+            action: 'requested' as const,
             userId: '1',
             userName: 'Jordan Lee',
             timestamp: new Date('2024-01-11T10:00:00Z'),
@@ -276,7 +276,7 @@ export const MOCK_PAYMENTS: Payment[] = [
           },
           {
             id: 'AUDIT-009',
-            action: 'processed',
+            action: 'processed' as const,
             userId: '3',
             userName: 'Morgan Chen',
             timestamp: new Date('2024-01-11T14:00:00Z'),
@@ -297,19 +297,19 @@ export const MOCK_FEATURE_FLAGS: FeatureFlag[] = [
     description: 'Enable new dashboard UI for all users',
     environment: 'development',
     state: 'enabled',
-    rolloutPercentage: 100,
+    enabledUserIds: ['1', '2', '3'], // All users
     lastModifiedBy: '3',
     lastModifiedAt: new Date('2024-01-15T09:00:00Z'),
     auditHistory: [
       {
         id: 'AUDIT-010',
-        action: 'enabled',
+        action: 'enabled' as const,
         userId: '3',
         userName: 'Morgan Chen',
         timestamp: new Date('2024-01-15T09:00:00Z'),
         newState: {
           state: 'enabled',
-          rolloutPercentage: 100,
+          enabledUserIds: ['1', '2', '3'],
           environment: 'development'
         },
         reason: 'Testing new dashboard UI in development'
@@ -321,28 +321,28 @@ export const MOCK_FEATURE_FLAGS: FeatureFlag[] = [
     name: 'advanced_analytics',
     description: 'Enable advanced analytics features',
     environment: 'staging',
-    state: 'rollout',
-    rolloutPercentage: 50,
+    state: 'user_targeted',
+    enabledUserIds: ['1', '3'], // Jordan Lee and Morgan Chen
     lastModifiedBy: '3',
     lastModifiedAt: new Date('2024-01-14T16:00:00Z'),
     auditHistory: [
       {
         id: 'AUDIT-011',
-        action: 'rollout_updated',
+        action: 'user_targeting_updated' as const,
         userId: '3',
         userName: 'Morgan Chen',
         timestamp: new Date('2024-01-14T16:00:00Z'),
         previousState: {
-          state: 'rollout',
-          rolloutPercentage: 25,
+          state: 'user_targeted',
+          enabledUserIds: ['1'],
           environment: 'staging'
         },
         newState: {
-          state: 'rollout',
-          rolloutPercentage: 50,
+          state: 'user_targeted',
+          enabledUserIds: ['1', '3'],
           environment: 'staging'
         },
-        reason: 'Increasing rollout to 50% for further testing'
+        reason: 'Adding Morgan Chen to advanced analytics test group'
       }
     ]
   },
@@ -352,24 +352,24 @@ export const MOCK_FEATURE_FLAGS: FeatureFlag[] = [
     description: 'Enable new payment flow',
     environment: 'production',
     state: 'disabled',
-    rolloutPercentage: 0,
+    enabledUserIds: [],
     lastModifiedBy: '3',
     lastModifiedAt: new Date('2024-01-13T10:00:00Z'),
     auditHistory: [
       {
         id: 'AUDIT-012',
-        action: 'disabled',
+        action: 'disabled' as const,
         userId: '3',
         userName: 'Morgan Chen',
         timestamp: new Date('2024-01-13T10:00:00Z'),
         previousState: {
           state: 'enabled',
-          rolloutPercentage: 100,
+          enabledUserIds: ['1', '2', '3'],
           environment: 'production'
         },
         newState: {
           state: 'disabled',
-          rolloutPercentage: 0,
+          enabledUserIds: [],
           environment: 'production'
         },
         reason: 'Rolling back due to performance issues'
@@ -381,23 +381,23 @@ export const MOCK_FEATURE_FLAGS: FeatureFlag[] = [
     name: 'kyc_automation',
     description: 'Enable automated KYC verification',
     environment: 'development',
-    state: 'rollout',
-    rolloutPercentage: 25,
+    state: 'user_targeted',
+    enabledUserIds: ['2'], // Only Priya Shah
     lastModifiedBy: '3',
     lastModifiedAt: new Date('2024-01-12T14:00:00Z'),
     auditHistory: [
       {
         id: 'AUDIT-013',
-        action: 'rollout_updated',
+        action: 'user_targeting_updated' as const,
         userId: '3',
         userName: 'Morgan Chen',
         timestamp: new Date('2024-01-12T14:00:00Z'),
         newState: {
-          state: 'rollout',
-          rolloutPercentage: 25,
+          state: 'user_targeted',
+          enabledUserIds: ['2'],
           environment: 'development'
         },
-        reason: 'Testing automated KYC with small percentage'
+        reason: 'Testing automated KYC with compliance reviewer first'
       }
     ]
   },
@@ -407,24 +407,24 @@ export const MOCK_FEATURE_FLAGS: FeatureFlag[] = [
     description: 'Enable real-time notification system',
     environment: 'staging',
     state: 'enabled',
-    rolloutPercentage: 100,
+    enabledUserIds: ['1', '2', '3'], // All users
     lastModifiedBy: '3',
     lastModifiedAt: new Date('2024-01-11T11:00:00Z'),
     auditHistory: [
       {
         id: 'AUDIT-014',
-        action: 'enabled',
+        action: 'enabled' as const,
         userId: '3',
         userName: 'Morgan Chen',
         timestamp: new Date('2024-01-11T11:00:00Z'),
         previousState: {
           state: 'disabled',
-          rolloutPercentage: 0,
+          enabledUserIds: [],
           environment: 'staging'
         },
         newState: {
           state: 'enabled',
-          rolloutPercentage: 100,
+          enabledUserIds: ['1', '2', '3'],
           environment: 'staging'
         },
         reason: 'Enabled for staging testing'

@@ -51,6 +51,7 @@ export function getStatusColor(status: string): string {
     case 'escalated':
       return 'text-orange-700 bg-orange-50 border-orange-200';
     case 'rollout':
+    case 'user_targeted':
       return 'text-blue-700 bg-blue-50 border-blue-200';
     default:
       return 'text-gray-700 bg-gray-50 border-gray-200';

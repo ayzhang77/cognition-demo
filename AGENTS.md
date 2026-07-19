@@ -159,15 +159,15 @@ __tests__/             # Unit tests
 
 ### 3. Feature-Flag Admin Panel (`app/feature-flags/page.tsx`)
 
-**Purpose**: Feature flag management with environment controls and compliance.
+**Purpose**: Feature flag management with environment controls and user-based targeting.
 
 **Key Features**:
 - Filter by environment and state
 - Flag name, description, environment, current state
-- Rollout percentage control
+- User-based targeting (select specific users to enable for)
 - Last modified by and timestamp
-- Enable/disable flags
-- Adjust rollout percentage
+- Enable/disable flags (enable for all users, disable for all)
+- Update user targeting (select specific users)
 - Choose environment (development, staging, production)
 - Add change reason
 - Confirmation modal before changes
@@ -177,19 +177,21 @@ __tests__/             # Unit tests
 - Production changes require admin role
 - Every production change requires a reason
 - Clear distinction between development, staging, and production
-- Rollout percentage: 0-100%
-- State transitions: enabled ↔ disabled ↔ rollout
+- Three states: enabled (all users), disabled (no users), user_targeted (specific users)
+- User targeting: Select from the three mock users (Jordan Lee, Priya Shah, Morgan Chen)
+- State transitions: enabled ↔ disabled ↔ user_targeted
 
 **Data Model** (`types/feature-flag.ts`):
-- `FeatureFlag`: Flag entity with state, rollout, environment, audit history
+- `FeatureFlag`: Flag entity with state, enabledUserIds array, environment, audit history
 - `Environment`: development, staging, production
-- `FlagState`: enabled, disabled, rollout
-- `FeatureFlagAuditEvent`: Change history with previous/new state comparison
+- `FlagState`: enabled, disabled, user_targeted
+- `FeatureFlagAuditEvent`: Change history with previous/new state comparison including user IDs
 
 **Service**: `services/feature-flag-service.ts`
 - `getFlags(filters)`: Retrieve and filter feature flags
 - `getFlagById(id)`: Get single flag details
 - `performAction(flagId, action, userId, userName, reason, params)`: Execute flag changes
+- `isFlagEnabledForUser(flag, userId)`: Check if flag is enabled for specific user
 - `canModifyProduction(userRole)`: Authorization check
 
 ## Shared Components Context

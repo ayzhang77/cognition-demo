@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { FeatureFlag, FlagAction, Environment } from '@/types/feature-flag';
 import { featureFlagService } from '@/services/feature-flag-service';
 import { authService } from '@/lib/auth';
+import { MOCK_USERS } from '@/types/user';
 import { Card } from '@/components/shared/Card';
 import { Table } from '@/components/shared/Table';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -19,7 +20,7 @@ export default function FeatureFlagsPage() {
   const [editModal, setEditModal] = useState({ 
     isOpen: false, 
     action: 'enable' as FlagAction, 
-    rolloutPercentage: 100,
+    enabledUserIds: [] as string[],
     environment: 'development' as Environment,
     reason: '' 
   });
@@ -78,18 +79,22 @@ export default function FeatureFlagsPage() {
         currentUser.name,
         editModal.reason,
         {
-          rolloutPercentage: editModal.rolloutPercentage,
+          enabledUserIds: editModal.enabledUserIds,
           environment: editModal.environment
         }
       );
 
-      setEditModal({ isOpen: false, action: 'enable', rolloutPercentage: 100, environment: 'development', reason: '' });
+      setEditModal({ isOpen: false, action: 'enable', enabledUserIds: [], environment: 'development', reason: '' });
       setSelectedFlag(null);
       setError(null);
       loadFlags();
     } catch (err) {
       setError('Failed to update feature flag');
     }
+  };
+
+  const getUserNames = (userIds: string[]) => {
+    return userIds.map(id => MOCK_USERS.find(u => u.id === id)?.name || 'Unknown').join(', ');
   };
 
   const columns = [
@@ -126,9 +131,13 @@ export default function FeatureFlagsPage() {
       render: (value: string) => <StatusBadge status={value} />
     },
     {
-      key: 'rolloutPercentage',
-      header: 'Rollout',
-      render: (value: number) => `${value}%`
+      key: 'enabledUserIds',
+      header: 'Enabled Users',
+      render: (value: string[], row: FeatureFlag) => {
+        if (row.state === 'enabled') return 'All Users';
+        if (row.state === 'disabled') return 'None';
+        return getUserNames(value);
+      }
     },
     {
       key: 'lastModifiedAt',
@@ -175,7 +184,7 @@ export default function FeatureFlagsPage() {
             <option value="">All States</option>
             <option value="enabled">Enabled</option>
             <option value="disabled">Disabled</option>
-            <option value="rollout">Rollout</option>
+            <option value="user_targeted">User Targeted</option>
           </select>
         </div>
       </Card>
@@ -215,15 +224,29 @@ export default function FeatureFlagsPage() {
             </div>
 
             <div>
-              <p className="text-sm font-medium text-gray-500">Rollout Percentage</p>
-              <div className="flex items-center gap-4">
-                <div className="flex-1 bg-gray-200 rounded-full h-4">
-                  <div 
-                    className="bg-blue-600 h-4 rounded-full transition-all"
-                    style={{ width: `${selectedFlag.rolloutPercentage}%` }}
-                  />
-                </div>
-                <span className="text-lg font-semibold">{selectedFlag.rolloutPercentage}%</span>
+              <p className="text-sm font-medium text-gray-500">Enabled Users</p>
+              <div className="mt-2">
+                {selectedFlag.state === 'enabled' && (
+                  <p className="text-green-700 font-medium">All Users</p>
+                )}
+                {selectedFlag.state === 'disabled' && (
+                  <p className="text-red-700 font-medium">None</p>
+                )}
+                {selectedFlag.state === 'user_targeted' && (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedFlag.enabledUserIds.map(userId => {
+                      const user = MOCK_USERS.find(u => u.id === userId);
+                      return user ? (
+                        <div key={userId} className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
+                          <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                            {user.name.charAt(0)}
+                          </div>
+                          <span className="text-sm font-medium">{user.name}</span>
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -248,7 +271,7 @@ export default function FeatureFlagsPage() {
                 onClick={() => setEditModal({ 
                   isOpen: true, 
                   action: 'enable', 
-                  rolloutPercentage: selectedFlag.rolloutPercentage,
+                  enabledUserIds: selectedFlag.enabledUserIds,
                   environment: selectedFlag.environment,
                   reason: '' 
                 })}
@@ -260,7 +283,7 @@ export default function FeatureFlagsPage() {
                 onClick={() => setEditModal({ 
                   isOpen: true, 
                   action: 'disable', 
-                  rolloutPercentage: selectedFlag.rolloutPercentage,
+                  enabledUserIds: selectedFlag.enabledUserIds,
                   environment: selectedFlag.environment,
                   reason: '' 
                 })}
@@ -271,13 +294,13 @@ export default function FeatureFlagsPage() {
                 variant="ghost"
                 onClick={() => setEditModal({ 
                   isOpen: true, 
-                  action: 'update_rollout', 
-                  rolloutPercentage: selectedFlag.rolloutPercentage,
+                  action: 'update_user_targeting', 
+                  enabledUserIds: selectedFlag.enabledUserIds,
                   environment: selectedFlag.environment,
                   reason: '' 
                 })}
               >
-                Update Rollout
+                Update User Targeting
               </Button>
             </div>
 
@@ -292,11 +315,11 @@ export default function FeatureFlagsPage() {
 
       <Modal
         isOpen={editModal.isOpen}
-        onClose={() => setEditModal({ isOpen: false, action: 'enable', rolloutPercentage: 100, environment: 'development', reason: '' })}
+        onClose={() => setEditModal({ isOpen: false, action: 'enable', enabledUserIds: [], environment: 'development', reason: '' })}
         title={`${editModal.action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Flag`}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setEditModal({ isOpen: false, action: 'enable', rolloutPercentage: 100, environment: 'development', reason: '' })}>
+            <Button variant="secondary" onClick={() => setEditModal({ isOpen: false, action: 'enable', enabledUserIds: [], environment: 'development', reason: '' })}>
               Cancel
             </Button>
             <Button onClick={handleFlagAction}>
@@ -306,19 +329,44 @@ export default function FeatureFlagsPage() {
         }
       >
         <div className="space-y-4">
-          {editModal.action === 'update_rollout' && (
+          {editModal.action === 'update_user_targeting' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Rollout Percentage
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Users to Enable
               </label>
-              <input
-                type="number"
-                value={editModal.rolloutPercentage}
-                onChange={(e) => setEditModal({ ...editModal, rolloutPercentage: parseInt(e.target.value) || 0 })}
-                min="0"
-                max="100"
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="space-y-2">
+                {MOCK_USERS.map((user) => (
+                  <label key={user.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editModal.enabledUserIds.includes(user.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setEditModal({ 
+                            ...editModal, 
+                            enabledUserIds: [...editModal.enabledUserIds, user.id] 
+                          });
+                        } else {
+                          setEditModal({ 
+                            ...editModal, 
+                            enabledUserIds: editModal.enabledUserIds.filter(id => id !== user.id) 
+                          });
+                        }
+                      }}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
+                        {user.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                        <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
             </div>
           )}
 

@@ -35,8 +35,8 @@ class FeatureFlagService {
     userName: string,
     reason: string,
     params?: {
-      rolloutPercentage?: number;
-      environment?: string;
+      enabledUserIds?: string[];
+      environment?: Environment;
     }
   ): Promise<FeatureFlag> {
     await new Promise(resolve => setTimeout(resolve, 400));
@@ -48,7 +48,7 @@ class FeatureFlagService {
 
     const previousState = {
       state: flag.state,
-      rolloutPercentage: flag.rolloutPercentage,
+      enabledUserIds: [...flag.enabledUserIds],
       environment: flag.environment
     };
 
@@ -57,23 +57,23 @@ class FeatureFlagService {
     switch (action) {
       case 'enable':
         flag.state = 'enabled';
-        flag.rolloutPercentage = 100;
+        flag.enabledUserIds = ['1', '2', '3']; // Enable for all users
         auditAction = 'enabled';
         break;
       case 'disable':
         flag.state = 'disabled';
-        flag.rolloutPercentage = 0;
+        flag.enabledUserIds = [];
         auditAction = 'disabled';
         break;
-      case 'update_rollout':
-        flag.state = 'rollout';
-        flag.rolloutPercentage = params?.rolloutPercentage || flag.rolloutPercentage;
-        auditAction = 'rollout_updated';
+      case 'update_user_targeting':
+        flag.state = 'user_targeted';
+        flag.enabledUserIds = params?.enabledUserIds || flag.enabledUserIds;
+        auditAction = 'user_targeting_updated';
         break;
     }
 
     if (params?.environment) {
-      flag.environment = params.environment as Environment;
+      flag.environment = params.environment;
       auditAction = 'environment_changed';
     }
 
@@ -89,7 +89,7 @@ class FeatureFlagService {
       previousState,
       newState: {
         state: flag.state,
-        rolloutPercentage: flag.rolloutPercentage,
+        enabledUserIds: flag.enabledUserIds,
         environment: flag.environment
       },
       reason
@@ -98,6 +98,13 @@ class FeatureFlagService {
     flag.auditHistory.push(auditEvent);
 
     return flag;
+  }
+
+  isFlagEnabledForUser(flag: FeatureFlag, userId: string): boolean {
+    if (flag.state === 'disabled') return false;
+    if (flag.state === 'enabled') return true;
+    if (flag.state === 'user_targeted') return flag.enabledUserIds.includes(userId);
+    return false;
   }
 
   canModifyProduction(userRole: string): boolean {
