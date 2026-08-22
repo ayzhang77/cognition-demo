@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ContentChild, Component, Directive, EventEmitter, Input, Output } from '@angular/core';
 import { cn } from '../lib/utils';
 
 export type ModalSize = 'sm' | 'md' | 'lg';
@@ -8,6 +8,10 @@ const SIZES: Record<ModalSize, string> = {
   md: 'max-w-lg',
   lg: 'max-w-2xl',
 };
+
+/** Marks projected content as the modal footer; the footer bar renders only when present. */
+@Directive({ selector: '[modalFooter]' })
+export class ModalFooter {}
 
 @Component({
   selector: 'app-modal',
@@ -45,8 +49,12 @@ export class Modal {
   @Input() isOpen = false;
   @Input() title = '';
   @Input() size: ModalSize = 'md';
-  @Input() hasFooter = true;
   @Output() closed = new EventEmitter<void>();
+  @ContentChild(ModalFooter, { static: true }) protected footer?: ModalFooter;
+
+  protected get hasFooter(): boolean {
+    return this.footer !== undefined;
+  }
 
   get panelClasses(): string {
     return cn('relative bg-white rounded-lg shadow-xl w-full mx-4', SIZES[this.size]);
