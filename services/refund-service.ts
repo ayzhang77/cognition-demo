@@ -1,4 +1,11 @@
 import { Payment, Refund, RefundAction, RefundAuditEvent } from '../types/refund';
+import { User } from '../types/user';
+import {
+  RefundAuthorizationError,
+  assertCanRefundAmount,
+  assertCanRejectRefund,
+  canRefundAmount
+} from '../lib/refund-authz';
 import { MOCK_PAYMENTS } from './mock-data';
 
 class RefundService {
@@ -58,11 +65,20 @@ class RefundService {
   async requestRefund(
     paymentId: string,
     amount: number,
-    userId: string,
-    userName: string,
+    actor: User,
     reason: string
   ): Promise<Refund> {
     await new Promise(resolve => setTimeout(resolve, 400));
+
+    if (!actor) {
+      throw new RefundAuthorizationError('Authentication required');
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Refund amount must be a positive number');
+    }
+
+    assertCanRefundAmount(actor.role, amount);
 
     const payment = this.payments.find(p => p.id === paymentId);
     if (!payment) {
@@ -81,7 +97,7 @@ class RefundService {
       paymentId,
       amount,
       status: 'pending',
-      requestedBy: userId,
+      requestedBy: actor.id,
       requestedAt: new Date(),
       reason,
       risk,
@@ -89,8 +105,8 @@ class RefundService {
         {
           id: `AUDIT-${Date.now()}`,
           action: 'requested',
-          userId,
-          userName,
+          userId: actor.id,
+          userName: actor.name,
           timestamp: new Date(),
           amount,
           reason
@@ -107,11 +123,14 @@ class RefundService {
   async processRefundAction(
     refundId: string,
     action: RefundAction,
-    userId: string,
-    userName: string,
+    actor: User,
     reason: string
   ): Promise<Refund> {
     await new Promise(resolve => setTimeout(resolve, 400));
+
+    if (!actor) {
+      throw new RefundAuthorizationError('Authentication required');
+    }
 
     const payment = this.payments.find(p => 
       p.refundHistory.some(r => r.id === refundId)
@@ -126,11 +145,21 @@ class RefundService {
       throw new Error('Refund not found');
     }
 
+    if (refund.status !== 'pending') {
+      throw new Error('Refund is no longer pending');
+    }
+
+    if (action === 'approve') {
+      assertCanRefundAmount(actor.role, refund.amount);
+    } else {
+      assertCanRejectRefund(actor.role);
+    }
+
     const auditEvent: RefundAuditEvent = {
       id: `AUDIT-${Date.now()}`,
       action: action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : action,
-      userId,
-      userName,
+      userId: actor.id,
+      userName: actor.name,
       timestamp: new Date(),
       amount: refund.amount,
       reason
@@ -147,8 +176,8 @@ class RefundService {
         const processedEvent: RefundAuditEvent = {
           id: `AUDIT-${Date.now() + 1}`,
           action: 'processed',
-          userId,
-          userName,
+          userId: actor.id,
+          userName: actor.name,
           timestamp: new Date(),
           amount: refund.amount,
           reason
@@ -167,10 +196,8 @@ class RefundService {
     return refund;
   }
 
-  canRefundAmount(userRole: string, amount: number): boolean {
-    if (userRole === 'admin') return true;
-    if (userRole === 'support') return amount <= 500;
-    return false;
+  canRefundAmount(userRole: User['role'], amount: number): boolean {
+    return canRefundAmount(userRole, amount);
   }
 
   private calculateRefundRisk(payment: Payment, amount: number): 'low' | 'medium' | 'high' {
@@ -181,4 +208,11 @@ class RefundService {
   }
 }
 
-export const refundService = new RefundService();
+// The mock data store must be shared across route bundles so refunds created by
+// one API route are visible to the others.
+const globalForRefunds = globalThis as typeof globalThis & {
+  __refundService?: RefundService;
+};
+
+export const refundService = globalForRefunds.__refundService ?? new RefundService();
+globalForRefunds.__refundService = refundService;

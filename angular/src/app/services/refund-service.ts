@@ -1,9 +1,17 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Payment, Refund, RefundAction, RefundAuditEvent } from '../types/refund';
+import { User } from '../types/user';
+import {
+  RefundAuthorizationError,
+  assertCanRefundAmount,
+  assertCanRejectRefund
+} from '../lib/refund-authz';
+import { AuthService } from './auth-service';
 import { MOCK_PAYMENTS } from './mock-data';
 
 @Injectable({ providedIn: 'root' })
 export class RefundService {
+  private readonly authService = inject(AuthService);
   private payments: Payment[] = [...MOCK_PAYMENTS];
 
   async getPayments(filters?: {
@@ -57,14 +65,16 @@ export class RefundService {
     return this.payments.find(p => p.id === id) || null;
   }
 
-  async requestRefund(
-    paymentId: string,
-    amount: number,
-    userId: string,
-    userName: string,
-    reason: string
-  ): Promise<Refund> {
+  async requestRefund(paymentId: string, amount: number, reason: string): Promise<Refund> {
     await new Promise(resolve => setTimeout(resolve, 400));
+
+    const actor = this.requireActor();
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Refund amount must be a positive number');
+    }
+
+    assertCanRefundAmount(actor.role, amount);
 
     const payment = this.payments.find(p => p.id === paymentId);
     if (!payment) {
@@ -83,7 +93,7 @@ export class RefundService {
       paymentId,
       amount,
       status: 'pending',
-      requestedBy: userId,
+      requestedBy: actor.id,
       requestedAt: new Date(),
       reason,
       risk,
@@ -91,8 +101,8 @@ export class RefundService {
         {
           id: `AUDIT-${Date.now()}`,
           action: 'requested',
-          userId,
-          userName,
+          userId: actor.id,
+          userName: actor.name,
           timestamp: new Date(),
           amount,
           reason
@@ -106,14 +116,10 @@ export class RefundService {
     return refund;
   }
 
-  async processRefundAction(
-    refundId: string,
-    action: RefundAction,
-    userId: string,
-    userName: string,
-    reason: string
-  ): Promise<Refund> {
+  async processRefundAction(refundId: string, action: RefundAction, reason: string): Promise<Refund> {
     await new Promise(resolve => setTimeout(resolve, 400));
+
+    const actor = this.requireActor();
 
     const payment = this.payments.find(p =>
       p.refundHistory.some(r => r.id === refundId)
@@ -128,11 +134,21 @@ export class RefundService {
       throw new Error('Refund not found');
     }
 
+    if (refund.status !== 'pending') {
+      throw new Error('Refund is no longer pending');
+    }
+
+    if (action === 'approve') {
+      assertCanRefundAmount(actor.role, refund.amount);
+    } else {
+      assertCanRejectRefund(actor.role);
+    }
+
     const auditEvent: RefundAuditEvent = {
       id: `AUDIT-${Date.now()}`,
       action: action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : action,
-      userId,
-      userName,
+      userId: actor.id,
+      userName: actor.name,
       timestamp: new Date(),
       amount: refund.amount,
       reason
@@ -149,8 +165,8 @@ export class RefundService {
         const processedEvent: RefundAuditEvent = {
           id: `AUDIT-${Date.now() + 1}`,
           action: 'processed',
-          userId,
-          userName,
+          userId: actor.id,
+          userName: actor.name,
           timestamp: new Date(),
           amount: refund.amount,
           reason
@@ -168,6 +184,19 @@ export class RefundService {
     refund.auditHistory.push(auditEvent);
 
     return refund;
+  }
+
+  /**
+   * Identity is resolved here rather than accepted from callers. Until this app
+   * is backed by a real API these checks still run in the browser, so they must
+   * be re-enforced server-side (as the Next.js refunds API does) before launch.
+   */
+  private requireActor(): User {
+    const actor = this.authService.getCurrentUser();
+    if (!actor) {
+      throw new RefundAuthorizationError('Authentication required');
+    }
+    return actor;
   }
 
   private calculateRefundRisk(payment: Payment, amount: number): 'low' | 'medium' | 'high' {
