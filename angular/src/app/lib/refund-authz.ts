@@ -9,6 +9,12 @@ export class RefundAuthorizationError extends Error {
   }
 }
 
+// `instanceof` is unreliable here: the class can be loaded from more than one
+// bundle of the module graph, so identity checks fail across those copies.
+export function isRefundAuthorizationError(error: unknown): error is RefundAuthorizationError {
+  return error instanceof Error && error.name === 'RefundAuthorizationError';
+}
+
 export function canRefundAmount(role: UserRole, amount: number): boolean {
   if (role === 'admin') return true;
   if (role === 'support') return amount <= SUPPORT_REFUND_LIMIT;

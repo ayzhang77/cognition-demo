@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { RefundAuthorizationError } from '@/lib/refund-authz';
+import { isRefundAuthorizationError } from '@/lib/refund-authz';
 import { getSessionUser } from '@/lib/server/session';
 import { refundService } from '@/services/refund-service';
 
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     const refund = await refundService.requestRefund(paymentId, amount, actor, reason);
     return NextResponse.json({ refund }, { status: 201 });
   } catch (error) {
-    if (error instanceof RefundAuthorizationError) {
+    if (isRefundAuthorizationError(error)) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
     const message = error instanceof Error ? error.message : 'Failed to request refund';
