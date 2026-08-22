@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MOCK_USERS } from '@/types/user';
+import { MOCK_USERS, User } from '@/types/user';
 import { authService } from '@/lib/auth';
+import { startSession } from '@/lib/api-client';
 
 const roleColors = {
   support: 'bg-green-500',
@@ -27,8 +28,22 @@ export function UserSwitcher() {
     return unsubscribe;
   }, []);
 
-  const handleUserSwitch = (user: typeof MOCK_USERS[0]) => {
+  const signIn = async (user: User) => {
+    // The server session is authoritative for authorization; the local auth
+    // service only drives UI affordances.
+    await startSession(user.id);
     authService.setCurrentUser(user);
+  };
+
+  useEffect(() => {
+    if (!authService.getCurrentUser()) {
+      signIn(MOCK_USERS[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleUserSwitch = (user: User) => {
+    signIn(user);
     setIsOpen(false);
   };
 

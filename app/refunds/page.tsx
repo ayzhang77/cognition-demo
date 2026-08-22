@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Payment, RefundAction } from '@/types/refund';
-import { refundService } from '@/services/refund-service';
+import * as api from '@/lib/api-client';
 import { authService } from '@/lib/auth';
 import { Card } from '@/components/shared/Card';
 import { Table } from '@/components/shared/Table';
@@ -43,7 +43,7 @@ export default function RefundsPage() {
   const loadPayments = async () => {
     try {
       setLoading(true);
-      const data = await refundService.getPayments({
+      const data = await api.getPayments({
         search: filters.search || undefined,
         refundStatus: filters.refundStatus || undefined,
         minAmount: filters.minAmount ? parseFloat(filters.minAmount) : undefined,
@@ -63,8 +63,8 @@ export default function RefundsPage() {
 
     try {
       const amount = parseFloat(refundModal.amount);
-      
-      // Check authorization
+
+      // UX hint only - authorization is enforced server-side by the refunds API
       if (!authService.canRefundAmount(amount)) {
         setError('Support agents may only refund up to $500. Amounts above $500 require Finance admin approval.');
         return;
@@ -80,20 +80,14 @@ export default function RefundsPage() {
         return;
       }
 
-      await refundService.requestRefund(
-        selectedPayment.id,
-        amount,
-        currentUser.id,
-        currentUser.name,
-        refundModal.reason
-      );
+      await api.requestRefund(selectedPayment.id, amount, refundModal.reason);
 
       setRefundModal({ isOpen: false, amount: '', reason: '' });
       setSelectedPayment(null);
       setError(null);
       loadPayments();
     } catch (err) {
-      setError('Failed to request refund');
+      setError(err instanceof Error ? err.message : 'Failed to request refund');
     }
   };
 
@@ -106,13 +100,7 @@ export default function RefundsPage() {
         return;
       }
 
-      await refundService.processRefundAction(
-        actionModal.refundId,
-        actionModal.action,
-        currentUser.id,
-        currentUser.name,
-        notes
-      );
+      await api.processRefundAction(actionModal.refundId, actionModal.action, notes);
 
       setActionModal({ isOpen: false, action: 'approve', refundId: '' });
       setNotes('');
@@ -120,7 +108,7 @@ export default function RefundsPage() {
       setError(null);
       loadPayments();
     } catch (err) {
-      setError('Failed to process action');
+      setError(err instanceof Error ? err.message : 'Failed to process action');
     }
   };
 

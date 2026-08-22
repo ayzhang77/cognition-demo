@@ -152,7 +152,7 @@ export class Refunds implements OnInit {
     try {
       const amount = parseFloat(this.refundModal.amount);
 
-      // Check authorization
+      // UX hint only - authorization is enforced inside RefundService
       if (!this.authService.canRefundAmount(amount)) {
         this.error =
           'Support agents may only refund up to $500. Amounts above $500 require Finance admin approval.';
@@ -172,8 +172,6 @@ export class Refunds implements OnInit {
       await this.refundService.requestRefund(
         this.selectedPayment.id,
         amount,
-        currentUser.id,
-        currentUser.name,
         this.refundModal.reason
       );
 
@@ -181,8 +179,8 @@ export class Refunds implements OnInit {
       this.selectedPayment = null;
       this.error = null;
       this.loadPayments();
-    } catch {
-      this.error = 'Failed to request refund';
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : 'Failed to request refund';
     }
   }
 
@@ -199,8 +197,6 @@ export class Refunds implements OnInit {
       await this.refundService.processRefundAction(
         this.actionModal.refundId,
         this.actionModal.action,
-        currentUser.id,
-        currentUser.name,
         this.notes
       );
 
@@ -209,8 +205,8 @@ export class Refunds implements OnInit {
       this.selectedPayment = null;
       this.error = null;
       this.loadPayments();
-    } catch {
-      this.error = 'Failed to process action';
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : 'Failed to process action';
     }
   }
 

@@ -3,8 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navigation } from "@/components/layout/Navigation";
 import { UserSwitcher } from "@/components/layout/UserSwitcher";
-import { authService } from "@/lib/auth";
-import { MOCK_USERS } from "@/types/user";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,11 +16,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Set default user if not set
-  if (!authService.getCurrentUser()) {
-    authService.setCurrentUser(MOCK_USERS[0]);
-  }
-
   return (
     <html lang="en">
       <body className={inter.className}>
