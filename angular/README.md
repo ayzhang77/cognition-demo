@@ -13,8 +13,12 @@ The app is a client-side SPA: all data comes from the in-memory mock services un
 | Services | `services/*-service.ts` | `src/app/services/*-service.ts` (`@Injectable({providedIn:'root'})`) | yes |
 | Auth / RBAC | `lib/auth.ts` | `src/app/services/auth-service.ts` (signal + observable) | yes |
 | Shared UI | `components/shared/` | `src/app/shared/` | yes |
-| Layout shell | `components/layout/`, `app/layout.tsx` | — | pending |
-| Routes / pages | `app/**/page.tsx` | `src/app/app.routes.ts` | pending |
+| Layout shell | `components/layout/`, `app/layout.tsx` | `src/app/layout/`, `src/app/app.ts` | yes |
+| Routes | `app/**/page.tsx` (file routes) | `src/app/app.routes.ts` | yes |
+| Dashboard home | `app/page.tsx` | `src/app/pages/dashboard.ts` | yes |
+| Refunds page | `app/refunds/page.tsx` | `src/app/pages/refunds.ts` | yes |
+| KYC page | `app/kyc/page.tsx` | `src/app/pages/kyc.ts` (placeholder) | pending |
+| Feature flags page | `app/feature-flags/page.tsx` | `src/app/pages/feature-flags.ts` (placeholder) | pending |
 | Tests | `__tests__/` | `*.spec.ts` (Karma + Jasmine) | pending |
 
 RBAC checks that were duplicated in the feature services (`refundService.canRefundAmount`,
@@ -23,6 +27,11 @@ RBAC checks that were duplicated in the feature services (`refundService.canRefu
 
 The default user (`MOCK_USERS[0]`) is set by an app initializer in `src/app/app.config.ts`,
 replacing the render-time bootstrap in `app/layout.tsx`.
+
+`usePathname()`-based nav highlighting is replaced by `routerLinkActive` (exact match), and the
+reactive `authService.subscribe` pattern by the `AuthService.currentUser` signal.
+React `useEffect(loadPayments, [filters])` becomes a `Subject` piped through `switchMap` in
+`ngOnInit`, so filter changes cancel in-flight loads.
 
 ## Running
 
