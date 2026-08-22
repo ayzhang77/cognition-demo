@@ -1,0 +1,264 @@
+<ng-template #customerCell let-value let-row="row">
+  <div>
+    <p class="font-medium">{{ value }}</p>
+    <p class="text-xs text-gray-500">{{ row.customerEmail }}</p>
+  </div>
+</ng-template>
+
+<ng-template #amountCell let-value let-row="row">{{ formatCurrency(value, row.currency) }}</ng-template>
+
+<ng-template #refundableCell let-value let-row="row">{{ formatCurrency(value, row.currency) }}</ng-template>
+
+<ng-template #refundHistoryCell let-value>
+  <span class="text-sm text-gray-600">{{ value.length }} request(s)</span>
+</ng-template>
+
+<ng-template #paymentDateCell let-value>{{ formatDate(value) }}</ng-template>
+
+@if (loading) {
+  <div class="flex items-center justify-center h-64">
+    <div class="text-gray-500">Loading payments...</div>
+  </div>
+} @else {
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900 mb-6">Refunds Dashboard</h1>
+
+    @if (error) {
+      <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+        {{ error }}
+      </div>
+    }
+
+    <app-card className="mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <input
+          type="text"
+          placeholder="Search by customer, ID..."
+          [value]="filters.search"
+          (input)="updateFilter('search', $any($event.target).value)"
+          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <select
+          [value]="filters.refundStatus"
+          (change)="updateFilter('refundStatus', $any($event.target).value)"
+          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="processed">Processed</option>
+        </select>
+        <input
+          type="number"
+          placeholder="Min Amount"
+          [value]="filters.minAmount"
+          (input)="updateFilter('minAmount', $any($event.target).value)"
+          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input
+          type="number"
+          placeholder="Max Amount"
+          [value]="filters.maxAmount"
+          (input)="updateFilter('maxAmount', $any($event.target).value)"
+          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <select
+          [value]="filters.risk"
+          (change)="updateFilter('risk', $any($event.target).value)"
+          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Risk Levels</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+    </app-card>
+
+    <app-card>
+      <app-table [data]="payments" [columns]="columns" (rowClick)="selectedPayment = $event" />
+    </app-card>
+
+    @if (selectedPayment) {
+      <app-modal
+        [isOpen]="!!selectedPayment"
+        (closed)="selectedPayment = null"
+        [title]="'Payment: ' + selectedPayment.id"
+        size="lg"
+      >
+        <div class="space-y-6">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm font-medium text-gray-500">Customer</p>
+              <p class="text-lg font-semibold">{{ selectedPayment.customerName }}</p>
+              <p class="text-sm text-gray-600">{{ selectedPayment.customerEmail }}</p>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-500">Amount</p>
+              <p class="text-lg font-semibold">
+                {{ formatCurrency(selectedPayment.amount, selectedPayment.currency) }}
+              </p>
+              <p class="text-sm text-gray-600">
+                Refundable: {{ formatCurrency(selectedPayment.refundableAmount, selectedPayment.currency) }}
+              </p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span class="text-gray-500">Transaction ID:</span>
+              <span class="ml-2 font-medium">{{ selectedPayment.transactionId }}</span>
+            </div>
+            <div>
+              <span class="text-gray-500">Payment Date:</span>
+              <span class="ml-2 font-medium">{{ formatDate(selectedPayment.paymentDate) }}</span>
+            </div>
+          </div>
+
+          @if (selectedPayment.refundHistory.length > 0) {
+            <div>
+              <p class="text-sm font-medium text-gray-500 mb-2">Refund History</p>
+              <div class="space-y-3">
+                @for (refund of selectedPayment.refundHistory; track refund.id) {
+                  <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="flex justify-between items-start mb-2">
+                      <div>
+                        <p class="font-medium">{{ formatCurrency(refund.amount, selectedPayment.currency) }}</p>
+                        <p class="text-sm text-gray-600">{{ refund.reason }}</p>
+                      </div>
+                      <app-status-badge [status]="refund.status" />
+                    </div>
+                    <div class="text-xs text-gray-500">
+                      Requested by {{ refund.requestedBy }} on {{ formatDate(refund.requestedAt) }}
+                    </div>
+                    @if (refund.status === 'pending' && currentUser()) {
+                      <div class="flex gap-2 mt-3">
+                        <app-button
+                          size="sm"
+                          (clicked)="openActionModal('approve', refund.id)"
+                          [disabled]="!canRefundAmount(refund.amount)"
+                        >
+                          Approve
+                        </app-button>
+                        <app-button
+                          variant="danger"
+                          size="sm"
+                          (clicked)="openActionModal('reject', refund.id)"
+                        >
+                          Reject
+                        </app-button>
+                      </div>
+                    }
+                    @if (refund.auditHistory.length > 0) {
+                      <details class="mt-2">
+                        <summary class="text-xs text-blue-600 cursor-pointer">View Audit History</summary>
+                        <app-audit-log [events]="refund.auditHistory" className="mt-2" />
+                      </details>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          @if (selectedPayment.refundableAmount > 0) {
+            <div class="pt-4 border-t">
+              <app-button (clicked)="openRefundModal()" [disabled]="requestRefundBlockedByLimit">
+                Request Refund
+              </app-button>
+            </div>
+          }
+
+          @if (requestRefundBlockedByLimit) {
+            <p class="text-sm text-orange-600 bg-orange-50 p-3 rounded-lg">
+              ⚠️ Refunds above $500 require Finance admin approval
+            </p>
+          }
+        </div>
+      </app-modal>
+    }
+
+    <app-modal
+      [isOpen]="refundModal.isOpen"
+      (closed)="closeRefundModal()"
+      title="Request Refund"
+    >
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Refund Amount (Max: {{ selectedPayment && formatCurrency(selectedPayment.refundableAmount) }})
+          </label>
+          <input
+            type="number"
+            [value]="refundModal.amount"
+            (input)="refundModal.amount = $any($event.target).value"
+            [max]="selectedPayment?.refundableAmount"
+            min="0"
+            step="0.01"
+            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          @if (requestRefundOverLimit) {
+            <p class="text-sm text-orange-600 mt-1">
+              ⚠️ Support agents may only refund up to $500
+            </p>
+          }
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Reason
+          </label>
+          <textarea
+            [value]="refundModal.reason"
+            (input)="refundModal.reason = $any($event.target).value"
+            placeholder="Enter refund reason..."
+            rows="3"
+            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          ></textarea>
+        </div>
+      </div>
+
+      <app-button modalFooter variant="secondary" (clicked)="closeRefundModal()">
+        Cancel
+      </app-button>
+      <app-button modalFooter (clicked)="handleRequestRefund()" [disabled]="requestRefundDisabled">
+        Request Refund
+      </app-button>
+    </app-modal>
+
+    <app-modal
+      [isOpen]="actionModal.isOpen"
+      (closed)="closeActionModal()"
+      [title]="actionModalTitle"
+    >
+      <div>
+        <p class="text-sm text-gray-600 mb-4">
+          Please provide a reason for {{ actionModalActionLabel }} this refund.
+        </p>
+        @if (actionModal.action === 'approve' && actionModalRefund) {
+          <div class="mb-4">
+            @if (actionModalOverLimit) {
+              <p class="text-sm text-orange-600 bg-orange-50 p-3 rounded-lg">
+                ⚠️ Support agents may only refund up to $500
+              </p>
+            }
+          </div>
+        }
+        <textarea
+          [value]="notes"
+          (input)="notes = $any($event.target).value"
+          placeholder="Enter your notes..."
+          rows="4"
+          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        ></textarea>
+      </div>
+
+      <app-button modalFooter variant="secondary" (clicked)="closeActionModal()">
+        Cancel
+      </app-button>
+      <app-button modalFooter (clicked)="handleRefundAction()" [disabled]="actionConfirmDisabled">
+        Confirm
+      </app-button>
+    </app-modal>
+  </div>
+}
