@@ -29,8 +29,9 @@ RBAC checks that were duplicated in the feature services (`refundService.canRefu
 `kycService.canApproveHighRisk`, `featureFlagService.canModifyProduction`) are consolidated into
 `AuthService.canRefundAmount` / `canApproveKYCHighRisk` / `canModifyProductionFlags`.
 
-The default user (`MOCK_USERS[0]`) is set by an app initializer in `src/app/app.config.ts`,
-replacing the render-time bootstrap in `app/layout.tsx`.
+No user is set on load: the header shows "Select User" until one is picked from the user switcher,
+matching the Next.js app, where the `MOCK_USERS[0]` bootstrap in `app/layout.tsx` runs on the server
+and never reaches the client `authService`.
 
 `usePathname()`-based nav highlighting is replaced by `routerLinkActive` (exact match), and the
 reactive `authService.subscribe` pattern by the `AuthService.currentUser` signal.

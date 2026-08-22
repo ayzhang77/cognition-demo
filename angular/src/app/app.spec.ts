@@ -1,7 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
 import { AuthService } from './services/auth-service';
-import { MOCK_USERS } from './types/user';
 import { appConfig } from './app.config';
 
 describe('App', () => {
@@ -17,8 +16,8 @@ describe('App', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('should bootstrap the default user', () => {
+  it('should start with no current user', () => {
     TestBed.createComponent(App);
-    expect(TestBed.inject(AuthService).getCurrentUser()).toEqual(MOCK_USERS[0]);
+    expect(TestBed.inject(AuthService).getCurrentUser()).toBeNull();
   });
 });
